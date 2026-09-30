@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Interactive model of the EU vs China battery cell cost gap, its drivers, carbon footprint and 2030 value pools, built from public data.">
+<title>Europe's Battery Cost Gap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: an analyst's brief — question as headline, three findings, a control rail, then numbered exhibits in reading order. */
+:root{
+  --bg:#f3f5f7; --paper:#ffffff; --ink:#15202b; --ink-2:#4a5664; --ink-3:#7b8794;
+  --rule:#d9dfe5; --grid:#e7ebef; --accent:#1f3a93; --accent-soft:#e3e8f6; --neg:#1f3a93;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s6:#008300; --s7:#4a3aa7;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-data:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12171d; --paper:#1a2129; --ink:#eef2f6; --ink-2:#b3bdc8; --ink-3:#8793a0;
+  --rule:#2c3640; --grid:#252e37; --accent:#8fa8f0; --accent-soft:#223056; --neg:#8fa8f0;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300; --s7:#9085e9;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12171d; --paper:#1a2129; --ink:#eef2f6; --ink-2:#b3bdc8; --ink-3:#8793a0;
+  --rule:#2c3640; --grid:#252e37; --accent:#8fa8f0; --accent-soft:#223056; --neg:#8fa8f0;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300; --s7:#9085e9;
+  color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55;margin:0}
+.wrap{max-width:1080px;margin:0 auto;padding-inline:20px;padding-block:32px 64px;display:grid;gap:28px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;letter-spacing:-.01em}
+h1{font-size:clamp(28px,4.6vw,44px);line-height:1.08;font-weight:700;max-width:22ch}
+h2{font-size:22px;font-weight:600;line-height:1.2}
+.eyebrow{font-family:var(--f-data);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.byline{color:var(--ink-2);font-size:14px}
+.lede{max-width:66ch;color:var(--ink-2);font-size:16px}
+header{display:grid;gap:12px}
+.num{font-variant-numeric:tabular-nums}
+.findings{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.finding{background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:16px 18px;display:grid;gap:4px;align-content:start}
+.finding .big{font-family:var(--f-display);font-size:34px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.finding .big small{font-size:15px;font-weight:500;color:var(--ink-2)}
+.finding p{margin:0;font-size:14px;color:var(--ink-2)}
+.finding .lab{font-family:var(--f-data);font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3)}
+.main{display:grid;grid-template-columns:290px minmax(0,1fr);gap:24px;align-items:start}
+.rail{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:18px;display:grid;gap:16px}
+.rail h3{font-size:16px}
+.rail .hint{font-size:12.5px;color:var(--ink-3);margin:0}
+.seg{display:flex;border:1px solid var(--rule);border-radius:5px;overflow:hidden}
+.seg button{flex:1;border:0;background:transparent;color:var(--ink-2);font:500 13px var(--f-body);padding:7px 6px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--paper)}
+.seg button:focus-visible,.presets button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.ctl{display:grid;gap:4px}
+.ctl label{display:flex;justify-content:space-between;gap:8px;font-size:13px;color:var(--ink-2)}
+.ctl output{font-family:var(--f-data);font-size:12.5px;color:var(--ink);font-variant-numeric:tabular-nums}
+.ctl .cn{font-family:var(--f-data);font-size:11px;color:var(--ink-3)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.presets{display:grid;gap:6px}
+.presets button{border:1px solid var(--rule);background:var(--bg);color:var(--ink);font:500 13px var(--f-body);padding:8px 10px;border-radius:5px;cursor:pointer;text-align:left}
+.presets button:hover{border-color:var(--accent)}
+.exhibits{display:grid;gap:22px;min-width:0}
+.ex{background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:20px 22px;display:grid;gap:10px;min-width:0}
+.ex .sub{margin:0;color:var(--ink-2);font-size:14px;max-width:70ch}
+.ex .note{margin:0;color:var(--ink-3);font-size:12.5px}
+.chart{width:100%;overflow-x:auto}
+.chart svg{display:block;width:100%;height:auto;min-width:520px}
+.row2 .chart svg{min-width:300px}
+svg text{font-family:var(--f-data);fill:var(--ink-2);font-size:11px}
+svg .t-ink{fill:var(--ink)} svg .t-mut{fill:var(--ink-3)} svg .t-b{font-weight:500}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:2px;display:inline-block}
+.row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{padding:7px 10px;border-bottom:1px solid var(--rule);text-align:left;vertical-align:top}
+th{font-family:var(--f-data);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);font-weight:500}
+td.r,th.r{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--f-data);font-size:12.5px}
+.tbl{overflow-x:auto}
+.tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--paper);font:12px/1.4 var(--f-data);padding:6px 9px;border-radius:4px;max-width:240px;z-index:10}
+.sources ol{margin:0;padding-left:20px;display:grid;gap:4px;font-size:13.5px;color:var(--ink-2)}
+.sources a{color:var(--accent)}
+.caveats{margin:0;padding-left:20px;display:grid;gap:4px;font-size:14px;color:var(--ink-2)}
+footer{font-size:12.5px;color:var(--ink-3);border-top:1px solid var(--rule);padding-top:14px}
+@media (max-width:880px){.main{grid-template-columns:1fr}.rail{position:static}.row2{grid-template-columns:1fr}}
+@media (max-width:640px){.findings{grid-template-columns:1fr}.wrap{padding-inline:16px}.ex{padding:16px}}
+@media (prefers-reduced-motion:no-preference){svg rect.m{transition:width .25s,x .25s,y .25s,height .25s}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Battery value chain · cell cost model · 2025 baseline</div>
+    <h1>Can Europe build a cost-competitive battery cell?</h1>
+    <div class="byline">Jaabili Tummala · Munich · September 2026 · Independent analysis from public sources</div>
+    <p class="lede">A European NMC811 cell costs about $41/kWh more to make than a best-in-class Chinese one. This model rebuilds that gap from public data, splits it into the levers a plant manager actually controls, and shows what closing it is worth. Move the sliders to test your own assumptions.</p>
+  </header>
+
+  <section class="findings" aria-label="Key findings">
+    <div class="finding"><span class="lab">Cell cost gap, EU vs China</span><span class="big num" id="f-gap">–</span><p id="f-gap-p">–</p></div>
+    <div class="finding"><span class="lab">Biggest single lever</span><span class="big num" id="f-lever">–</span><p id="f-lever-p">–</p></div>
+    <div class="finding"><span class="lab">EU local-production premium, 2030</span><span class="big num" id="f-prem">–</span><p id="f-prem-p">–</p></div>
+  </section>
+
+  <div class="main">
+    <aside class="rail" aria-label="Scenario controls">
+      <div class="ctl"><h3>Chemistry</h3>
+        <div class="seg" role="group" aria-label="Chemistry">
+          <button id="c-nmc" aria-pressed="true" data-chem="NMC811">NMC811</button>
+          <button id="c-lfp" aria-pressed="false" data-chem="LFP">LFP</button>
+        </div></div>
+      <div class="presets"><h3>European plant scenario</h3>
+        <button id="p-today">Europe today (ramp-up, 20% scrap)</button>
+        <button id="p-2030">Europe at China's efficiency (2030 case)</button>
+        <p class="hint">Grey figures show the China benchmark for each lever.</p>
+      </div>
+      <div class="ctl"><label for="s-scrap">Scrap rate <output id="o-scrap"></output></label><input id="s-scrap" type="range" min="3" max="35" step="1"><span class="cn">China 5% · mature plants ~10%</span></div>
+      <div class="ctl"><label for="s-workers">Workers per GWh <output id="o-workers"></output></label><input id="s-workers" type="range" min="30" max="160" step="5"><span class="cn">China 35</span></div>
+      <div class="ctl"><label for="s-util">Capacity utilisation <output id="o-util"></output></label><input id="s-util" type="range" min="40" max="95" step="5"><span class="cn">China 85%</span></div>
+      <div class="ctl"><label for="s-capex">Plant capex, $/kWh of capacity <output id="o-capex"></output></label><input id="s-capex" type="range" min="40" max="130" step="5"><span class="cn">China 45</span></div>
+      <div class="ctl"><label for="s-elec">Electricity price, $/kWh <output id="o-elec"></output></label><input id="s-elec" type="range" min="0.05" max="0.25" step="0.01"><span class="cn">China 0.08</span></div>
+      <div class="ctl"><label for="s-kwh">Energy use, kWh per kWh of cells <output id="o-kwh"></output></label><input id="s-kwh" type="range" min="15" max="50" step="1"><span class="cn">China 20</span></div>
+    </aside>
+
+    <div class="exhibits">
+      <section class="ex" aria-labelledby="h1x">
+        <div class="eyebrow">Exhibit 1</div>
+        <h2 id="h1x">Yield and capital, not electricity, explain most of the gap</h2>
+        <p class="sub">Walk from a European cell to a Chinese one by matching China on one lever at a time. Each bar is the saving from that step.</p>
+        <div class="chart" id="ch-bridge"></div>
+        <p class="note">Order matters for the scrap step: a lower scrap rate also cuts the labour, energy and capital spent per good cell, so it is taken first.</p>
+      </section>
+
+      <section class="ex" aria-labelledby="h2x">
+        <div class="eyebrow">Exhibit 2</div>
+        <h2 id="h2x">Cost stack by production region, cell to pack</h2>
+        <p class="sub">China and US use fixed benchmark assumptions. The EU bar follows your scenario.</p>
+        <div class="legend" id="lg-stack"></div>
+        <div class="chart" id="ch-stack"></div>
+      </section>
+
+      <div class="row2">
+        <section class="ex" aria-labelledby="h3x">
+          <div class="eyebrow">Exhibit 3</div>
+          <h2 id="h3x">Every point of scrap costs money</h2>
+          <p class="sub">EU cell cost as scrap rate changes, all other scenario settings held.</p>
+          <div class="chart" id="ch-scrap"></div>
+        </section>
+        <section class="ex" aria-labelledby="h4x">
+          <div class="eyebrow">Exhibit 4</div>
+          <h2 id="h4x">Clean power only pays off with high yield</h2>
+          <p class="sub">Cradle-to-gate footprint, kg CO₂e per kWh of cells, by plant location.</p>
+          <div class="legend" id="lg-co2"></div>
+          <div class="chart" id="ch-co2"></div>
+        </section>
+      </div>
+
+      <section class="ex" aria-labelledby="h5x">
+        <div class="eyebrow">Exhibit 5</div>
+        <h2 id="h5x">EU value pools in 2030</h2>
+        <p class="sub">Annual value of each step for EU EV battery demand, priced at China benchmark cost. The last row is the extra cost if all of it were made in Europe under your scenario.</p>
+        <div class="ctl" style="max-width:420px"><label for="s-dem">EU EV battery demand 2030, GWh <output id="o-dem"></output></label><input id="s-dem" type="range" min="250" max="700" step="10"></div>
+        <div class="ctl" style="max-width:420px"><label for="s-lfp">LFP share of EU demand <output id="o-lfp"></output></label><input id="s-lfp" type="range" min="0" max="80" step="5"></div>
+        <div class="tbl"><table id="t-pool"></table></div>
+      </section>
+
+      <section class="ex" aria-labelledby="h6x">
+        <div class="eyebrow">Method</div>
+        <h2 id="h6x">Assumptions</h2>
+        <p class="sub">Cell cost = materials + scrap loss + labour + energy + capital recovery + overhead, per kWh of good cells. Capital is recovered at 8% over 10 years. Scrap inflates every conversion cost by 1 / (1 − scrap); 20% of scrapped material value is recovered.</p>
+        <div class="tbl"><table id="t-assump"></table></div>
+        <p class="note">The benchmarks reproduce published figures within 2%: China NMC811 $57/kWh and Germany $99/kWh (BNEF BattMan via T&amp;E), EU 17% above the US, and LFP 90% above China. Material costs, US parameters, wages and pack adders are my own assumptions, set to match those anchors.</p>
+      </section>
+
+      <section class="ex" aria-labelledby="h7x">
+        <h2 id="h7x">What this model leaves out</h2>
+        <ul class="caveats">
+          <li>Material prices are held at China benchmark levels in every region, plus a small logistics premium. Real sourcing contracts, tariffs and lithium price swings would move the materials line.</li>
+          <li>Subsidies, production tax credits and EU tariffs on Chinese cells are excluded. They change who captures the gap, not its size.</li>
+          <li>Material carbon footprints are held equal across locations. Sourcing lower-carbon cathode material in Europe would widen Sweden's advantage.</li>
+          <li>Plant-level data on scrap, uptime and ramp curves would sharpen Exhibits 1 and 3 most. That is the data a battery team with client access holds.</li>
+        </ul>
+      </section>
+
+      <section class="ex sources" aria-labelledby="h8x">
+        <h2 id="h8x">Sources</h2>
+        <ol>
+          <li><a href="https://uploads.transportenvironment.org/production/files/2026_03_Briefing_IAA_battery_costs.pdf">T&amp;E (Mar 2026), The falling cost gap between EU and Chinese batteries</a> — regional cell costs from BNEF BattMan 3.2, 20% EU scrap, 125 vs 35 workers/GWh, $14/kWh gap by 2030.</li>
+          <li><a href="https://about.bnef.com/insights/clean-transport/lithium-ion-battery-pack-prices-fall-to-108-per-kilowatt-hour-despite-rising-metal-prices-bloombergnef/">BloombergNEF (Dec 2025), Battery price survey</a> — $108/kWh global pack average, $84 in China.</li>
+          <li><a href="https://www.iea.org/reports/global-ev-outlook-2026/electric-vehicle-batteries">IEA (2026), Global EV Outlook 2026</a> — cathode 40–50% of NMC and 25–30% of LFP cell cost; EU ~15% of 1.2 TWh EV battery demand; ~3 TWh global by 2030; yields above 90% needed.</li>
+          <li><a href="https://www.rolandberger.com/en/Insights/Publications/Two-outlooks-for-the-future-of-battery-manufacturing-in-Europe.html">Roland Berger (2025), Two outlooks for battery manufacturing in Europe</a> — equipment 50–100% and buildings 200–400% more expensive in Europe.</li>
+          <li><a href="https://christopherchico.substack.com/p/europes-battery-cost-gap-starts-at">Chico (2026), Europe's battery cost gap starts at the ramp-up</a> — citing Fraunhofer FFB and RWTH PEM: 15–30% scrap in early years, ~10% after five.</li>
+          <li><a href="https://greencalculus.com/data/grid-electricity-emission-factors/">Ember 2025 grid intensities (via GreenCalculus)</a> — China 0.526, Germany 0.330, Poland 0.589, Sweden 0.035, US 0.350 kg CO₂/kWh.</li>
+          <li><a href="https://uploads.transportenvironment.org/production/files/2023_04_Battery_carbon_footprint_position_paper-1.pdf">T&amp;E (2023), Battery carbon footprint position paper</a> — NMC811 footprints of 64–105 kg CO₂e/kWh by production location.</li>
+        </ol>
+      </section>
+      <footer>Model and page built by Jaabili Tummala with Claude Code. Figures are estimates for discussion, not investment advice. Not affiliated with any company named above.</footer>
+    </div>
+  </div>
+</div>
+<div class="tip" id="tip" hidden></div>
+
+<script>
+(function(){
+const CRF=0.149, RECOVERY=0.2;
+const MAT={NMC811:{cam:25.6,anode:5.0,electrolyte:3.0,separator:2.0,other:6.0},LFP:{cam:12.4,anode:5.0,electrolyte:3.0,separator:2.0,other:5.5}};
+const MAT_CO2={NMC811:55,LFP:40};
+const CAPEX_CHEM={NMC811:1.0,LFP:1.15};
+const PACK={China:18,US:25,EU:28};
+const CN={matPremium:0,scrap:.05,workers:35,wage:20000,kwhPerKwh:20,elecPrice:.08,capex:45,util:.85,overhead:2.5};
+const US={matPremium:.08,scrap:.12,workers:90,wage:85000,kwhPerKwh:30,elecPrice:.08,capex:80,util:.70,overhead:3.5};
+const EU_TODAY={matPremium:.05,scrap:.20,workers:125,wage:75000,kwhPerKwh:35,elecPrice:.15,capex:85,util:.70,overhead:4.0};
+const EU_2030={...EU_TODAY,scrap:.05,workers:35,kwhPerKwh:25,util:.80,overhead:3.0};
+const GRID={China:.526,US:.350,Germany:.330,Poland:.589,Sweden:.035};
+const COMP=[["materials","Materials","--s1"],["scrap","Scrap loss","--s2"],["labour","Labour","--s3"],["energy","Energy","--s4"],["capex","Capital","--s5"],["overhead","Overhead","--s6"],["pack","Pack integration","--s7"]];
+let chem="NMC811"; let eu={...EU_TODAY}; let demand=450, lfpShare=30;
+
+function cost(ch,p){const m=MAT[ch];const mb=(m.cam+m.anode+m.electrolyte+m.separator+m.other)*(1+p.matPremium);const y=1-p.scrap;
+  const parts={materials:mb,scrap:mb*(p.scrap/y)*(1-RECOVERY),labour:p.workers*p.wage/1e6/y,energy:p.kwhPerKwh*p.elecPrice/y,capex:p.capex*CAPEX_CHEM[ch]*CRF/p.util/y,overhead:p.overhead};
+  let t=0;for(const k in parts)t+=parts[k];return{parts,total:t};}
+function co2(ch,p,g){const y=1-p.scrap;const mat=MAT_CO2[ch]*(1+(p.scrap/y)*(1-RECOVERY));return{materials:MAT_CO2[ch],scrap:mat-MAT_CO2[ch],power:p.kwhPerKwh*g/y};}
+function bridge(ch){const steps=[["Scrap rate",["scrap"]],["Labour productivity",["workers"]],["Energy efficiency",["kwhPerKwh"]],["Electricity price",["elecPrice"]],["Wages",["wage"]],["Capex & utilisation",["capex","util"]],["Material logistics",["matPremium"]],["Overhead",["overhead"]]];
+  let p={...eu},prev=cost(ch,p).total;const out=[];for(const[n,ks]of steps){ks.forEach(k=>p[k]=CN[k]);const t=cost(ch,p).total;out.push({name:n,d:prev-t});prev=t;}return out;}
+
+const $=id=>document.getElementById(id);
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const fmt=(v,d=1)=>v.toFixed(d);
+const NS="http://www.w3.org/2000/svg";
+function el(tag,attrs,parent,text){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(text!=null)e.textContent=text;if(parent)parent.appendChild(e);return e;}
+function svg(w,h,label){const s=el("svg",{viewBox:`0 0 ${w} ${h}`,role:"img","aria-label":label});return s;}
+function ticks(max,n){const raw=max/n;const mag=Math.pow(10,Math.floor(Math.log10(raw)));const step=[1,2,2.5,5,10].map(x=>x*mag).find(x=>x>=raw);const out=[];for(let v=0;v<=max+1e-9;v+=step)out.push(+v.toFixed(6));return out;}
+
+// tooltip
+const tip=$("tip");
+document.addEventListener("pointermove",e=>{const t=e.target.closest&&e.target.closest("[data-tip]");if(!t){tip.hidden=true;return;}tip.textContent=t.getAttribute("data-tip");tip.hidden=false;const x=Math.min(e.clientX+14,window.innerWidth-250);tip.style.left=x+"px";tip.style.top=(e.clientY+14)+"px";});
+
+function drawBridge(){const b=bridge(chem);const euC=cost(chem,eu).total,cnC=cost(chem,CN).total;
+  const rows=[{name:"Europe (your scenario)",v:euC,total:true},...b.map(s=>({name:s.name,v:s.d})),{name:"China benchmark",v:cnC,total:true}];
+  const W=720,rowH=30,L=170,R=60,T=24,H=T+rows.length*rowH+24;const s=svg(W,H,"Cost bridge from European to Chinese cell cost");
+  const max=Math.ceil(euC/20)*20,x=v=>L+(W-L-R)*v/max;
+  for(const t of ticks(max,5)){el("line",{x1:x(t),x2:x(t),y1:T-6,y2:H-22,stroke:css("--grid"),"stroke-width":1},s);el("text",{x:x(t),y:H-6,"text-anchor":"middle",class:"t-mut"},s,"$"+t);}
+  let run=euC;rows.forEach((r,i)=>{const y=T+i*rowH;el("text",{x:L-10,y:y+rowH/2+4,"text-anchor":"end",class:r.total?"t-ink t-b":""},s,r.name);
+    let x0,x1,fill;if(r.total){x0=x(0);x1=x(r.v);fill=css("--ink");}else{x1=x(run);x0=x(run-r.v);run-=r.v;fill=css("--accent");}
+    const w=Math.max(1.5,x1-x0);el("rect",{class:"m",x:x0,y:y+6,width:w,height:rowH-12,rx:2,fill,"data-tip":`${r.name}: ${r.total?"$"+fmt(r.v)+"/kWh":"−$"+fmt(r.v)+"/kWh"}`},s);
+    el("text",{x:x0+w+6,y:y+rowH/2+4,class:"t-ink"},s,r.total?"$"+fmt(r.v):"−"+fmt(r.v));
+    if(!r.total&&i<rows.length-1){el("line",{x1:x0,x2:x0,y1:y+rowH-6,y2:y+rowH+6,stroke:css("--ink-3"),"stroke-dasharray":"2 2"},s);}});
+  $("ch-bridge").replaceChildren(s);return b;}
+
+function drawStack(){const regs=[["China",CN],["US",US],["EU (scenario)",eu]];
+  const W=720,L=110,R=70,T=10,rowH=40,H=T+regs.length*rowH+26;const s=svg(W,H,"Cost stack by region");
+  const data=regs.map(([n,p])=>{const c=cost(chem,p);return{n,parts:{...c.parts,pack:PACK[n.startsWith("EU")?"EU":n]},cell:c.total};});
+  const maxT=Math.max(...data.map(d=>d.cell+d.parts.pack));const max=Math.ceil(maxT/20)*20,x=v=>L+(W-L-R)*v/max;
+  for(const t of ticks(max,5)){el("line",{x1:x(t),x2:x(t),y1:T,y2:H-22,stroke:css("--grid")},s);el("text",{x:x(t),y:H-6,"text-anchor":"middle",class:"t-mut"},s,"$"+t);}
+  data.forEach((d,i)=>{const y=T+i*rowH;el("text",{x:L-10,y:y+rowH/2+4,"text-anchor":"end",class:"t-ink t-b"},s,d.n);let acc=0;
+    for(const[k,lab,col]of COMP){const v=d.parts[k];const x0=x(acc),w=Math.max(0,x(acc+v)-x0-2);el("rect",{class:"m",x:x0,y:y+8,width:w,height:rowH-16,rx:2,fill:css(col),"data-tip":`${d.n} · ${lab}: $${fmt(v)}/kWh`},s);acc+=v;}
+    el("text",{x:x(acc)+6,y:y+rowH/2+4,class:"t-ink"},s,"$"+fmt(acc,0));});
+  $("ch-stack").replaceChildren(s);
+  $("lg-stack").innerHTML=COMP.map(([k,l,c])=>`<span><i style="background:var(${c})"></i>${l}</span>`).join("");}
+
+function drawScrap(){const W=420,H=260,L=44,R=16,T=14,B=34;const s=svg(W,H,"EU cell cost versus scrap rate");
+  const pts=[];for(let r=3;r<=35;r++){pts.push([r,cost(chem,{...eu,scrap:r/100}).total]);}const cn=cost(chem,CN).total;
+  const maxY=Math.ceil(Math.max(...pts.map(p=>p[1]))/20)*20;const x=v=>L+(W-L-R)*(v-3)/32,y=v=>T+(H-T-B)*(1-v/maxY);
+  for(const t of ticks(maxY,4)){el("line",{x1:L,x2:W-R,y1:y(t),y2:y(t),stroke:css("--grid")},s);el("text",{x:L-6,y:y(t)+4,"text-anchor":"end",class:"t-mut"},s,"$"+t);}
+  for(const t of [5,10,15,20,25,30,35]){el("text",{x:x(t),y:H-14,"text-anchor":"middle",class:"t-mut"},s,t+"%");}
+  el("text",{x:(L+W-R)/2,y:H-1,"text-anchor":"middle",class:"t-mut"},s,"scrap rate");
+  el("line",{x1:L,x2:W-R,y1:y(cn),y2:y(cn),stroke:css("--ink-3"),"stroke-dasharray":"4 3","stroke-width":1.5},s);
+  el("text",{x:W-R,y:y(cn)-6,"text-anchor":"end",class:"t-mut"},s,"China $"+fmt(cn,0));
+  el("path",{d:pts.map((p,i)=>(i?"L":"M")+x(p[0]).toFixed(1)+" "+y(p[1]).toFixed(1)).join(" "),fill:"none",stroke:css("--accent"),"stroke-width":2},s);
+  const cur=Math.round(eu.scrap*100),cv=cost(chem,eu).total;el("circle",{cx:x(cur),cy:y(cv),r:5,fill:css("--accent"),stroke:css("--paper"),"stroke-width":2,"data-tip":`Your scenario: ${cur}% scrap → $${fmt(cv)}/kWh`},s);
+  el("text",{x:x(cur)+(cur>15?-8:8),y:y(cv)-10,"text-anchor":cur>15?"end":"start",class:"t-ink"},s,"$"+fmt(cv,0)+" at "+cur+"%");
+  const per=(cost(chem,{...eu,scrap:.21}).total-cost(chem,{...eu,scrap:.19}).total)/2;
+  for(let r=3;r<=35;r++){el("rect",{x:x(r)-5,y:T,width:10,height:H-T-B,fill:"transparent","data-tip":`${r}% scrap → $${fmt(pts[r-3][1])}/kWh`},s);}
+  $("ch-scrap").replaceChildren(s);return per;}
+
+function drawCO2(){const locs=[["China",CN,GRID.China],["US",US,GRID.US],["EU · Poland",eu,GRID.Poland],["EU · Germany",eu,GRID.Germany],["EU · Sweden",eu,GRID.Sweden]];
+  const parts=[["materials","Cell materials","--s1"],["scrap","Scrapped material","--s2"],["power","Plant electricity","--s3"]];
+  const W=420,L=92,R=40,T=6,rowH=34,H=T+locs.length*rowH+24;const s=svg(W,H,"Carbon footprint by plant location");
+  const data=locs.map(([n,p,g])=>({n,c:co2(chem,p,g)}));const max=Math.ceil(Math.max(...data.map(d=>d.c.materials+d.c.scrap+d.c.power))/20)*20,x=v=>L+(W-L-R)*v/max;
+  for(const t of ticks(max,4)){el("line",{x1:x(t),x2:x(t),y1:T,y2:H-22,stroke:css("--grid")},s);el("text",{x:x(t),y:H-6,"text-anchor":"middle",class:"t-mut"},s,t);}
+  data.forEach((d,i)=>{const y=T+i*rowH;el("text",{x:L-8,y:y+rowH/2+4,"text-anchor":"end",class:"t-ink"},s,d.n);let acc=0;
+    for(const[k,l,c]of parts){const v=d.c[k];const x0=x(acc),w=Math.max(0,x(acc+v)-x0-2);el("rect",{class:"m",x:x0,y:y+7,width:w,height:rowH-14,rx:2,fill:css(c),"data-tip":`${d.n} · ${l}: ${fmt(v)} kg CO₂e/kWh`},s);acc+=v;}
+    el("text",{x:x(acc)+5,y:y+rowH/2+4,class:"t-ink"},s,fmt(acc,0));});
+  $("ch-co2").replaceChildren(s);$("lg-co2").innerHTML=parts.map(([k,l,c])=>`<span><i style="background:var(${c})"></i>${l}</span>`).join("");return data;}
+
+function pools(){const rows=[["Cathode active material",c=>MAT[c].cam],["Anode active material",c=>MAT[c].anode],["Electrolyte, separator, foils & casing",c=>MAT[c].electrolyte+MAT[c].separator+MAT[c].other],["Cell manufacturing",c=>cost(c,CN).total-(MAT[c].cam+MAT[c].anode+MAT[c].electrolyte+MAT[c].separator+MAT[c].other)],["Pack integration",c=>PACK.China]];
+  const share=lfpShare/100,mix=f=>f("NMC811")*(1-share)+f("LFP")*share;let tot=0;
+  let html=`<thead><tr><th>Value-chain step</th><th class="r">$/kWh (mix)</th><th class="r">Pool, $bn/yr</th></tr></thead><tbody>`;
+  for(const[n,f]of rows){const v=mix(f);tot+=v;html+=`<tr><td>${n}</td><td class="r">${fmt(v)}</td><td class="r">${fmt(v*demand/1000)}</td></tr>`;}
+  const prem=mix(c=>cost(c,eu).total+PACK.EU-cost(c,CN).total-PACK.China);
+  html+=`<tr><td><strong>Total at China cost</strong></td><td class="r"><strong>${fmt(tot)}</strong></td><td class="r"><strong>${fmt(tot*demand/1000)}</strong></td></tr>`;
+  html+=`<tr><td>Premium if made in the EU (your scenario)</td><td class="r">+${fmt(prem)}</td><td class="r">+${fmt(prem*demand/1000)}</td></tr></tbody>`;
+  $("t-pool").innerHTML=html;return prem*demand/1000;}
+
+function assumptions(){const f=[["Scrap rate","scrap",v=>Math.round(v*100)+"%"],["Workers per GWh","workers",v=>v],["All-in wage, $/yr","wage",v=>(v/1000)+"k"],["Energy use, kWh/kWh","kwhPerKwh",v=>v],["Electricity, $/kWh","elecPrice",v=>v.toFixed(2)],["Capex, $/kWh capacity","capex",v=>v],["Utilisation","util",v=>Math.round(v*100)+"%"],["Material cost premium","matPremium",v=>Math.round(v*100)+"%"],["Overhead, $/kWh","overhead",v=>v.toFixed(1)]];
+  let h=`<thead><tr><th>Parameter</th><th class="r">China</th><th class="r">US</th><th class="r">EU today</th><th class="r">EU scenario</th></tr></thead><tbody>`;
+  for(const[n,k,g]of f)h+=`<tr><td>${n}</td><td class="r">${g(CN[k])}</td><td class="r">${g(US[k])}</td><td class="r">${g(EU_TODAY[k])}</td><td class="r">${g(eu[k])}</td></tr>`;
+  h+=`<tr><td>Pack integration, $/kWh</td><td class="r">${PACK.China}</td><td class="r">${PACK.US}</td><td class="r">${PACK.EU}</td><td class="r">${PACK.EU}</td></tr>`;
+  h+=`<tr><td>Cell materials, NMC811 / LFP, $/kWh</td><td class="r" colspan="4">${fmt(Object.values(MAT.NMC811).reduce((a,b)=>a+b,0))} / ${fmt(Object.values(MAT.LFP).reduce((a,b)=>a+b,0))} (cathode ${MAT.NMC811.cam} / ${MAT.LFP.cam})</td></tr>`;
+  h+=`<tr><td>Material footprint, NMC811 / LFP, kg CO₂e/kWh</td><td class="r" colspan="4">${MAT_CO2.NMC811} / ${MAT_CO2.LFP}</td></tr></tbody>`;
+  $("t-assump").innerHTML=h;}
+
+const sliders=[["s-scrap","o-scrap","scrap",v=>v/100,v=>Math.round(v*100),v=>v+"%"],["s-workers","o-workers","workers",v=>v,v=>v,v=>v],["s-util","o-util","util",v=>v/100,v=>Math.round(v*100),v=>v+"%"],["s-capex","o-capex","capex",v=>v,v=>v,v=>v],["s-elec","o-elec","elecPrice",v=>v,v=>v,v=>(+v).toFixed(2)],["s-kwh","o-kwh","kwhPerKwh",v=>v,v=>v,v=>v]];
+function syncSliders(){for(const[sid,oid,k,,toS,show]of sliders){$(sid).value=toS(eu[k]);$(oid).textContent=show($(sid).value);} $("s-dem").value=demand;$("o-dem").textContent=demand;$("s-lfp").value=lfpShare;$("o-lfp").textContent=lfpShare+"%";}
+for(const[sid,oid,k,fromS,,show]of sliders){$(sid).addEventListener("input",e=>{eu[k]=fromS(+e.target.value);$(oid).textContent=show(e.target.value);render();});}
+$("s-dem").addEventListener("input",e=>{demand=+e.target.value;$("o-dem").textContent=demand;render();});
+$("s-lfp").addEventListener("input",e=>{lfpShare=+e.target.value;$("o-lfp").textContent=lfpShare+"%";render();});
+document.querySelectorAll("[data-chem]").forEach(b=>b.addEventListener("click",()=>{chem=b.dataset.chem;document.querySelectorAll("[data-chem]").forEach(x=>x.setAttribute("aria-pressed",x===b));render();}));
+$("p-today").addEventListener("click",()=>{eu={...EU_TODAY};syncSliders();render();});
+$("p-2030").addEventListener("click",()=>{eu={...EU_2030};syncSliders();render();});
+
+function render(){const b=drawBridge();drawStack();const per=drawScrap();const co=drawCO2();const prem=pools();assumptions();
+  const euC=cost(chem,eu).total,cnC=cost(chem,CN).total,gap=euC-cnC;
+  $("f-gap").innerHTML=`$${fmt(gap,0)}<small>/kWh</small>`;$("f-gap-p").textContent=`${chem} cell: $${fmt(euC,0)} in Europe vs $${fmt(cnC,0)} in China, ${Math.round(gap/cnC*100)}% more.`;
+  const top=[...b].sort((a,c)=>c.d-a.d)[0];const elec=b.find(x=>x.name==="Electricity price").d;
+  if(top.d<0.5){$("f-lever").innerHTML="—";$("f-lever-p").textContent="Your scenario already matches China on every lever.";}
+  else{$("f-lever").innerHTML=`${top.name}`;$("f-lever").style.fontSize="26px";$("f-lever-p").textContent=`Worth $${fmt(top.d,1)}/kWh, against $${fmt(elec,1)}/kWh for the whole electricity-price gap. One point of scrap near your setting costs about $${fmt(per,2)}/kWh.`;}
+  $("f-prem").innerHTML=`$${fmt(prem,1)}<small>bn/yr</small>`;$("f-prem-p").textContent=`Extra cost if all ${demand} GWh of 2030 EU demand were made locally under this scenario (${lfpShare}% LFP).`;}
+syncSliders();render();
+new MutationObserver(render).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",render);
+})();
+</script>
+</body>
+</html>
